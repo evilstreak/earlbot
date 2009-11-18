@@ -17,18 +17,18 @@ sub get_response {
     $head->parse( get( $url ) );
     my $headline = $head->header( 'X-Meta-Headline' );
     my $summary = $head->header( 'X-Meta-Description' );
-    return "[ $headline — $summary ]";
+    return "$headline — $summary";
   }
   # Twitter status: screen name and tweet
   elsif ( $url =~ m'^http://twitter.com/\w+/status/\d+$' ) {
     $head->parse( get( $url ) );
     my $name = $head->header( 'X-Meta-Page-user-screen_name' );
     my $tweet = $head->header( 'X-Meta-Description');
-    return "[ $name — $tweet ]";
+    return "$name — $tweet";
   }
   # Everything else: the title
-  elsif ( my $title = title($url) ) {
-    return "[ $title ]";
+  elsif ( my $title = title( $url ) ) {
+    return $title;
   }
 }
 
@@ -36,7 +36,9 @@ sub said {
   my ( $self, $message ) = @_;
   for ( list_uris( $message->{body} ) ) {
     if ( my $reply = get_response( $_ ) ) {
-      $self->reply( $message, $reply );
+      # sanitize the reply to foil ms7821 and Paul2
+      $reply =~ s/[\x00-\x1f]//;
+      $self->reply( $message, "[ $reply ]" );
     }
   }
 }
