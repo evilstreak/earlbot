@@ -7,6 +7,24 @@ use URI::Title qw( title );
 use URI::Find::Simple qw( list_uris );
 use LWP::Simple;
 use HTML::HeadParser;
+use mro 'c3';
+
+sub ignore_nick {
+  my ($self, $nick) = @_;
+
+  # ignore the CIA announce bots from Github etc
+  return 1 if $nick =~ /^CIA-\d+$/;
+
+  $self->next::method($nick);
+}
+
+sub run {
+  my ($self, $no_run) = @_;
+
+  $self->{no_run} = $no_run;
+
+  $self->next::method();
+}
 
 sub get_response {
   my $url = shift;
@@ -35,8 +53,7 @@ sub get_response {
 sub said {
   my ( $self, $args ) = @_;
 
-  # ignore the CIA announce bots from Github etc
-  return if $args->{who} ~= /^CIA-\d+$/;
+  return if $self->ignore_nick($args->{who});
 
   for ( list_uris( $args->{body} ) ) {
     if ( my $reply = get_response( $_ ) ) {
@@ -64,8 +81,7 @@ my $freenode_bot = Bot->new(
   channels => [ '#juicejs', '#london-hack-space' ],
   nick => 'earl',
 );
-$freenode_bot->{no_run} = 1;
-$freenode_bot->run();
+$freenode_bot->run(1);
 
 Bot->new(
   server => "irc.afternet.org",
