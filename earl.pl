@@ -33,12 +33,16 @@ sub get_response {
 }
 
 sub said {
-  my ( $self, $message ) = @_;
-  for ( list_uris( $message->{body} ) ) {
+  my ( $self, $args ) = @_;
+
+  # ignore the CIA announce bots from Github etc
+  return if $args->{who} ~= /^CIA-\d+$/;
+
+  for ( list_uris( $args->{body} ) ) {
     if ( my $reply = get_response( $_ ) ) {
       # sanitize the reply to foil ms7821 and Paul2
       $reply =~ s/[\x00-\x1f]//;
-      $self->reply( $message, "[ $reply ]" );
+      $self->reply( $args, "[ $reply ]" );
     }
   }
 }
