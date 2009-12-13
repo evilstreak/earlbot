@@ -9,7 +9,7 @@ use LWP::Simple;
 use HTML::HeadParser;
 use POE::Kernel;
 use POE::Session;
-use mro 'c3';
+use Class::C3;
 
 sub ignore_nick {
   my ($self, $nick) = @_;
@@ -90,7 +90,6 @@ sub irc_invite_state {
 package main;
 use POSIX qw( setsid );
 
-=for comment
 chdir '/'                  or die "Can't chdir to /: $!";
 open STDIN, '/dev/null'    or die "Can't read /dev/null: $!";
 open STDOUT, '>>/dev/null' or die "Can't write to /dev/null: $!";
@@ -99,12 +98,11 @@ defined(my $pid = fork)    or die "Can't fork: $!";
 exit if $pid;
 setsid                     or die "Can't start a new session: $!";
 umask 0;
-=cut
 
 my $freenode_bot = Bot->new(
   server => "irc.freenode.net",
   channels => [ '#juicejs' ],
-  nick => 'earljr',
+  nick => 'earlbot',
 );
 $freenode_bot->run(1);
 
