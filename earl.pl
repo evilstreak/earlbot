@@ -7,6 +7,8 @@ use URI::Title qw( title );
 use URI::Find::Simple qw( list_uris );
 use LWP::Simple;
 use HTML::HeadParser;
+use POE::Kernel;
+use POE::Session;
 use mro 'c3';
 
 sub ignore_nick {
@@ -24,6 +26,15 @@ sub run {
   $self->{no_run} = $no_run;
 
   $self->next::method();
+}
+
+sub start_state {
+  my ($self, $kernel, $session) = @_[OBJECT, KERNEL, SESSION];
+
+  $self->next::can->(@_);
+
+  # And create another session to respond to irc_invite messages
+  POE::Session::_register_state($session, "irc_invite", $self, "irc_invite_state");
 }
 
 sub get_response {
@@ -64,9 +75,22 @@ sub said {
   }
 }
 
+sub irc_invite_state {
+    my ( $self, $who, $channel, $kernel ) = @_[ OBJECT, ARG0, ARG1, KERNEL ];
+    $self->log("irc_invite_state: $who, $channel");
+
+    $kernel->call( $self->{IRCNAME}, 'join', $self->charset_encode($channel) );
+    $self->emote(
+      channel => $channel,
+      body => "was invited by " . $self->nick_strip($who)
+    );
+}
+
+
 package main;
 use POSIX qw( setsid );
 
+=for comment
 chdir '/'                  or die "Can't chdir to /: $!";
 open STDIN, '/dev/null'    or die "Can't read /dev/null: $!";
 open STDOUT, '>>/dev/null' or die "Can't write to /dev/null: $!";
@@ -75,11 +99,12 @@ defined(my $pid = fork)    or die "Can't fork: $!";
 exit if $pid;
 setsid                     or die "Can't start a new session: $!";
 umask 0;
+=cut
 
 my $freenode_bot = Bot->new(
   server => "irc.freenode.net",
-  channels => [ '#juicejs', '#london-hack-space' ],
-  nick => 'earl',
+  channels => [ '#juicejs' ],
+  nick => 'earljr',
 );
 $freenode_bot->run(1);
 
