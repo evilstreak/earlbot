@@ -69,7 +69,7 @@ sub said {
   for ( list_uris( $args->{body} ) ) {
     if ( my $reply = get_response( $_ ) ) {
       # sanitize the reply to foil ms7821 and Paul2
-      $reply =~ s/[\x00-\x1f]//;
+      $reply =~ s/[\x00-\x1f]//g;
       $self->reply( $args, "[ $reply ]" );
     }
   }
