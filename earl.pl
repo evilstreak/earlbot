@@ -70,8 +70,8 @@ sub said {
     next unless $_ =~ /^http/i;
 
     if ( my $reply = get_response( $_ ) ) {
-      # sanitize the reply to foil ms7821 and Paul2
-      $reply =~ s/[\x00-\x1f]//g;
+      # Sanitise the title to only include printable chars
+      $reply =~ s/[^[:print:]]//g;
       $self->reply( $args, "[ $reply ]" );
     }
   }
