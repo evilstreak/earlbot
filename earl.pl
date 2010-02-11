@@ -67,6 +67,8 @@ sub said {
   return if $self->ignore_nick($args->{who});
 
   for ( list_uris( $args->{body} ) ) {
+    next unless $_ =~ /^http/i;
+
     if ( my $reply = get_response( $_ ) ) {
       # sanitize the reply to foil ms7821 and Paul2
       $reply =~ s/[\x00-\x1f]//g;
