@@ -72,6 +72,12 @@ sub said {
     if ( my $reply = get_response( $_ ) ) {
       # Sanitise the title to only include printable chars
       $reply =~ s/[^[:print:]]//g;
+
+      # Make sure the reply fits in one IRC message
+      if (length($reply) > 250) {
+        $reply = substr($reply, 0, 250) . '...';
+      }
+
       $self->reply( $args, "[ $reply ]" );
     }
   }
