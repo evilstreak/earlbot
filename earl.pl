@@ -10,6 +10,8 @@ use HTML::HeadParser;
 use POE::Kernel;
 use POE::Session;
 use Class::C3;
+use DBI;
+use Date::Format;
 
 sub ignore_nick {
   my ($self, $nick) = @_;
@@ -70,15 +72,23 @@ sub said {
     next unless $_ =~ /^http/i;
 
     if ( my $reply = get_response( $_ ) ) {
-      # Sanitise the title to only include printable chars
+      # Sanitise the reply to only include printable chars
       $reply =~ s/[^[:print:]]//g;
 
-      # Make sure the reply fits in one IRC message
-      if (length($reply) > 250) {
-        $reply = substr($reply, 0, 250) . '...';
+      # See if this has been posted before
+      my %result = log_uri( $_, $args->{channel}, $args->{who} );
+      my $olde = '';
+      if (%result) {
+        $olde = ' (First posted by '.$result{'nick'}.', '.time2str('%C', $result{'timestamp'}).')';
       }
 
-      $self->reply( $args, "[ $reply ]" );
+      # Make sure the reply fits in one IRC message
+      my $maxLen = 250 - length($olde);
+      if (length($reply) > $maxLen) {
+        $reply = substr($reply, 0, $maxLen) . '...';
+      }
+
+      $self->reply( $args, "[ $reply ]$olde" );
     }
   }
 }
@@ -94,6 +104,38 @@ sub irc_invite_state {
     );
 }
 
+my $dbh;
+sub log_uri {
+    my ( $uri, $channel, $nick ) = @_;
+
+    if (!$dbh) {
+      $dbh = DBI->connect( "dbi:SQLite:earl.db") or die ("$DBI::errstr");
+      
+      my $info = $dbh->table_info('', '', 'uri');
+      if (!$info->fetch) {
+        $dbh->do(
+          "CREATE TABLE uri (
+            uri string, nick string, channel string, timestamp int,
+            PRIMARY KEY(uri, channel)
+          );"
+        );
+      }
+
+    }
+
+    my $row = $dbh->selectrow_hashref (
+      "SELECT nick, timestamp FROM uri WHERE uri = ? AND channel = ?;",
+      {}, $uri, $channel
+    );
+    return %$row if $row;
+
+    my $result = $dbh->do (
+      "INSERT INTO uri (uri, nick, timestamp, channel) VALUES (?,?,?,?);",
+      {}, $uri, $nick, time(), $channel
+    );
+
+    return ();
+}
 
 package main;
 use POSIX qw( setsid );
@@ -109,8 +151,8 @@ umask 0;
 
 my $freenode_bot = Bot->new(
   server => "irc.freenode.net",
-  channels => [ '#juicejs', '#flusspferd', '#london-hack-space' ],
-  nick => 'earlbot',
+  channels => [ '#juicejs', '#flusspferd', '#london-hack-space', '#hackspace' ],
+  nick => 'earlbot2',
 );
 $freenode_bot->run(1);
 
