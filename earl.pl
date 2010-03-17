@@ -153,6 +153,7 @@ my $freenode_bot = Bot->new(
   server => "irc.freenode.net",
   channels => [ '#juicejs', '#flusspferd', '#london-hack-space', '#hackspace' ],
   nick => 'earlbot',
+  charset => 'utf-8'
 );
 $freenode_bot->run(1);
 
@@ -160,4 +161,5 @@ Bot->new(
   server => "irc.afternet.org",
   channels => [ '#randomnine' ],
   nick => 'earl',
+  charset => 'utf-8'
 )->run();
