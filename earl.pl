@@ -151,7 +151,7 @@ umask 0;
 
 my $freenode_bot = Bot->new(
   server => "irc.freenode.net",
-  channels => [ '#juicejs', '#flusspferd', '#london-hack-space', '#hackspace' ],
+  channels => [ '#juicejs', '#flusspferd', '#london-hack-space', '#hackspace', '#pubstandards' ],
   nick => 'earlbot',
   charset => 'utf-8'
 );
