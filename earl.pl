@@ -12,6 +12,7 @@ use POE::Session;
 use Class::C3;
 use DBI;
 use Date::Format;
+use DBD::SQLite;
 
 sub ignore_nick {
   my ($self, $nick) = @_;
@@ -140,7 +141,6 @@ sub log_uri {
 package main;
 use POSIX qw( setsid );
 
-chdir '/'                  or die "Can't chdir to /: $!";
 open STDIN, '/dev/null'    or die "Can't read /dev/null: $!";
 open STDOUT, '>>/dev/null' or die "Can't write to /dev/null: $!";
 open STDERR, '>>/dev/null' or die "Can't write to /dev/null: $!";
@@ -152,7 +152,7 @@ umask 0;
 my $freenode_bot = Bot->new(
   server => "irc.freenode.net",
   channels => [ '#juicejs', '#flusspferd', '#london-hack-space', '#hackspace' ],
-  nick => 'earlbot2',
+  nick => 'earlbot',
 );
 $freenode_bot->run(1);
 
