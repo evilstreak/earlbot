@@ -13,6 +13,14 @@ use Class::C3;
 use DBI;
 use Date::Format;
 use DBD::SQLite;
+use Config::General;
+
+my $configFile = 'earl.conf';
+my $conf = new Config::General(
+    -ConfigFile => $configFile,
+    -AutoTrue   => 1,
+);
+my %config = $conf->getall;
 
 sub ignore_nick {
   my ($self, $nick) = @_;
@@ -36,8 +44,9 @@ sub start_state {
 
   $self->next::can->(@_);
 
-  # And create another session to respond to irc_invite messages
+  # Create sessions to respond to irc_invite/kick messages
   POE::Session::_register_state($session, "irc_invite", $self, "irc_invite_state");
+  POE::Session::_register_state($session, "irc_kick", $self, "irc_kick_state");
 }
 
 sub get_response {
@@ -103,6 +112,19 @@ sub irc_invite_state {
       channel => $channel,
       body => "was invited by " . $self->nick_strip($who)
     );
+
+    $channel =~ s/^#//; # Because Config::General uses hash as a comment
+    $config{'server'}{$self->{server}}{'channel'}{$channel} = {};
+    Config::General::SaveConfig($configFile, \%config);
+}
+
+sub irc_kick_state {
+    my ( $self, $who, $channel, $kernel ) = @_[ OBJECT, ARG0, ARG1, KERNEL ];
+    $self->log("irc_kick_state: $who, $channel");
+
+    $channel =~ s/^#//; # Because Config::General uses hash as a comment
+    delete $config{'server'}{$self->{server}}{'channel'}{$channel};
+    Config::General::SaveConfig($configFile, \%config);
 }
 
 my $dbh;
@@ -141,23 +163,29 @@ sub log_uri {
 package main;
 use POSIX qw( setsid );
 
-open STDIN, '/dev/null'    or die "Can't read /dev/null: $!";
-open STDOUT, '>>/dev/null' or die "Can't write to /dev/null: $!";
-open STDERR, '>>/dev/null' or die "Can't write to /dev/null: $!";
-defined(my $pid = fork)    or die "Can't fork: $!";
-exit if $pid;
-setsid                     or die "Can't start a new session: $!";
-umask 0;
+if (!defined $config{'detach'} || $config{'detach'}) {
 
-my $freenode_bot = Bot->new(
-  server => "irc.freenode.net",
-  channels => [ '#juicejs', '#flusspferd', '#london-hack-space', '#hackspace' ],
-  nick => 'earlbot',
-);
-$freenode_bot->run(1);
+    open STDIN, '/dev/null'    or die "Can't read /dev/null: $!";
+    open STDOUT, '>>/dev/null' or die "Can't write to /dev/null: $!";
+    open STDERR, '>>/dev/null' or die "Can't write to /dev/null: $!";
+    defined(my $pid = fork)    or die "Can't fork: $!";
+    exit if $pid;
+    setsid                     or die "Can't start a new session: $!";
+    umask 0;
+}
 
-Bot->new(
-  server => "irc.afternet.org",
-  channels => [ '#randomnine' ],
-  nick => 'earl',
-)->run();
+my @servers = keys %{$config{'server'}};
+
+while (my $host = shift @servers) {
+    my $server = $config{'server'}->{$host};
+
+    my @channelNames = keys %{$server->{channel}};
+    @channelNames = map { '#'.$_ } @channelNames;
+
+    my $bot = Bot->new (
+      server    => $host,
+      nick      => $server->{nick},
+      channels  => \@channelNames,
+    );
+    $bot->run((@servers > 0));
+}
