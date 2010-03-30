@@ -186,6 +186,7 @@ while (my $host = shift @servers) {
       server    => $host,
       nick      => $server->{nick},
       channels  => \@channelNames,
+      charset   => 'utf-8',
     );
     $bot->run((@servers > 0));
 }
