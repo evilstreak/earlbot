@@ -58,14 +58,14 @@ sub get_response {
     $head->parse( get( $url ) );
     my $headline = $head->header( 'X-Meta-Headline' );
     my $summary = $head->header( 'X-Meta-Description' );
-    return "$headline — $summary";
+    return "$headline \x{2014} $summary";
   }
   # Twitter status: screen name and tweet
   elsif ( $url =~ m'^http://twitter.com/\w+/status(?:es)?/\d+$' ) {
     $head->parse( get( $url ) );
     my $name = $head->header( 'X-Meta-Page-user-screen_name' );
     my $tweet = $head->header( 'X-Meta-Description');
-    return "$name — $tweet";
+    return "$name \x{2014} $tweet";
   }
   # Everything else: the title
   elsif ( my $title = title( $url ) ) {
