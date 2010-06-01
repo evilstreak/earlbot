@@ -1,0 +1,25 @@
+detach   1
+<server>
+    <irc.freenode.net>
+        <channel>
+            <flusspferd>
+            </flusspferd>
+            <juicejs>
+            </juicejs>
+            <london-hack-space-dev>
+            </london-hack-space-dev>
+            <#ukpolitics>
+            </#ukpolitics>
+            <dc4420>
+            </dc4420>
+        </channel>
+        nick   earlbot
+    </irc.freenode.net>
+    <irc.afternet.org>
+        <channel>
+            <randomnine>
+            </randomnine>
+        </channel>
+        nick   earl
+    </irc.afternet.org>
+</server>

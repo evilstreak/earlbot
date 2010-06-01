@@ -1,3 +1,5 @@
 META.yml
 inc
 Makefile
+earl.db
+earl.conf
