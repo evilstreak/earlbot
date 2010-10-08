@@ -53,6 +53,10 @@ sub get_response {
   my $url = shift;
   my $head = HTML::HeadParser->new;
 
+  # Covert ajax URLs to non-js URLs (e.g. Twitter)
+  # http://googlewebmastercentral.blogspot.com/2009/10/proposal-for-making-ajax-crawlable.html
+  $url =~ s/#!/\?_escaped_fragment_=/;
+
   # BBC News article: headline and summary paragraph
   if ( $url =~ m'^http://news\.bbc\.co\.uk/.*/\d{7,}\.stm$' ) {
     $head->parse( get( $url ) );
@@ -61,7 +65,7 @@ sub get_response {
     return "$headline \x{2014} $summary";
   }
   # Twitter status: screen name and tweet
-  elsif ( $url =~ m'^http://twitter.com/(#!/)?\w+/status(?:es)?/\d+$' ) {
+  elsif ( $url =~ m'^http://twitter.com/\w+/status(?:es)?/\d+$' ) {
     $head->parse( get( $url ) );
     my $name = $head->header( 'X-Meta-Page-user-screen_name' );
     my $tweet = $head->header( 'X-Meta-Description');
