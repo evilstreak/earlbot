@@ -53,7 +53,7 @@ sub get_response {
   my $url = shift;
   my $head = HTML::HeadParser->new;
 
-  # Covert ajax URLs to non-js URLs (e.g. Twitter)
+  # Convert ajax URLs to non-js URLs (e.g. Twitter)
   # http://googlewebmastercentral.blogspot.com/2009/10/proposal-for-making-ajax-crawlable.html
   $url =~ s/#!/\?_escaped_fragment_=/;
 
@@ -89,8 +89,9 @@ sub said {
       # Sanitise the reply to only include printable chars
       $reply =~ s/[^[:print:]]//g;
 
-      # See if this has been posted before
-      my %result = log_uri( $_, $args->{channel}, $args->{who} );
+      # See if this has been posted before, unless it's a whitelisted URL
+      my $neverolde = $config{ 'neverolde' } || '^$';
+      my %result = log_uri( $_, $args->{channel}, $args->{who} ) unless $_ =~ m/$neverolde/i;
       my $olde = '';
       if (%result) {
         $olde = ' (First posted by '.$result{'nick'}.', '.time2str('%C', $result{'timestamp'}).')';

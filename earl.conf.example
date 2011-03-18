@@ -1,4 +1,5 @@
 detach   1
+neverolde   ^https?://wiki\.hackspace\.org\.uk
 <server>
     <irc.freenode.net>
         <channel>
