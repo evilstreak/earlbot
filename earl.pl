@@ -83,7 +83,7 @@ sub said {
   return if $self->ignore_nick($args->{who});
 
   for ( list_uris( $args->{body} ) ) {
-    next unless $_ =~ /^http/i;
+    next unless $_ =~ /^https?/i;
 
     if ( my $reply = get_response( $_ ) ) {
       # Sanitise the reply to only include printable chars
