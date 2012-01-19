@@ -6,6 +6,7 @@ use strict;
 use URI::Title qw( title );
 use URI::Find::Simple qw( list_uris );
 use LWP::Simple;
+use Crypt::SSLeay;
 use HTML::HeadParser;
 use POE::Kernel;
 use POE::Session;
