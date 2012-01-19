@@ -62,7 +62,7 @@ sub get_response {
   $url =~ s/#!/\?_escaped_fragment_=/;
 
   # BBC News article: headline and summary paragraph
-  if ( $url =~ m'^http://news\.bbc\.co\.uk/.*/\d{7,}\.stm$' ) {
+  if ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
     $head->parse( get( $url ) );
     my $headline = $head->header( 'X-Meta-Headline' );
     my $summary = $head->header( 'X-Meta-Description' );
