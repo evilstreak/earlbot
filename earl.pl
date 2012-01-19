@@ -29,6 +29,9 @@ sub ignore_nick {
   # ignore the CIA announce bots from Github etc
   return 1 if $nick =~ /^CIA-\d+$/;
 
+  # ignore robonaut
+  return 1 if $nick =~ /^robonaut$/;
+
   $self->next::method($nick);
 }
 
