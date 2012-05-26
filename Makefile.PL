@@ -16,6 +16,7 @@ requires 'DBI';
 requires 'Date::Format';
 requires 'DBD::SQLite';
 requires 'Config::General';
+requires "WWW::Shorten";
 
 install_script	'earl.pl';
 
