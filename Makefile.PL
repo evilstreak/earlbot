@@ -17,4 +17,6 @@ requires 'Date::Format';
 requires 'DBD::SQLite';
 requires 'Config::General';
 
+install_script	'earl.pl';
+
 WriteAll;
