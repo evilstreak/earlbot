@@ -102,7 +102,7 @@ sub said {
         $olde = ' (First posted by '.$result{'nick'}.', '.time2str('%C', $result{'timestamp'}).')';
       }
 
-      if (length($uri) > 60) {
+      if (length($uri) > 60 and $config{tinyurl}) {
 	my $short = makeashorterlink($uri);
 	if ($short) {
 	  $reply .= " [ $short ]";
