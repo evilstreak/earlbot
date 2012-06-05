@@ -15,6 +15,7 @@ use DBI;
 use Date::Format;
 use DBD::SQLite;
 use Config::General;
+use WWW::Shorten "TinyURL";
 
 my $configFile = 'earl.conf';
 my $conf = new Config::General(
@@ -86,19 +87,26 @@ sub said {
 
   return if $self->ignore_nick($args->{who});
 
-  for ( list_uris( $args->{body} ) ) {
-    next unless $_ =~ /^http/i;
+  for my $uri ( list_uris( $args->{body} ) ) {
+    next unless $uri =~ /^http/i;
 
-    if ( my $reply = get_response( $_ ) ) {
+    if ( my $reply = get_response( $uri ) ) {
       # Sanitise the reply to only include printable chars
       $reply =~ s/[^[:print:]]//g;
 
       # See if this has been posted before, unless it's a whitelisted URL
       my $neverolde = $config{ 'neverolde' } || '^$';
-      my %result = log_uri( $_, $args->{channel}, $args->{who} ) unless $_ =~ m/$neverolde/i;
+      my %result = log_uri( $uri, $args->{channel}, $args->{who} ) unless $uri =~ m/$neverolde/i;
       my $olde = '';
       if (%result) {
         $olde = ' (First posted by '.$result{'nick'}.', '.time2str('%C', $result{'timestamp'}).')';
+      }
+
+      if (length($uri) > 60 and $config{tinyurl}) {
+	my $short = makeashorterlink($uri);
+	if ($short) {
+	  $reply .= " [ $short ]";
+	}
       }
 
       # Make sure the reply fits in one IRC message
@@ -107,7 +115,9 @@ sub said {
         $reply = substr($reply, 0, $maxLen) . '...';
       }
 
+
       $self->reply( $args, "[ $reply ]$olde" );
+
     }
   }
 }
