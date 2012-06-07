@@ -6,6 +6,7 @@ use strict;
 use URI::Title qw( title );
 use URI::Find::Simple qw( list_uris );
 use LWP::Simple;
+use Crypt::SSLeay;
 use HTML::HeadParser;
 use POE::Kernel;
 use POE::Session;
@@ -27,6 +28,9 @@ sub ignore_nick {
 
   # ignore the CIA announce bots from Github etc
   return 1 if $nick =~ /^CIA-\d+$/;
+
+  # ignore robonaut
+  return 1 if $nick =~ /^robonaut$/;
 
   $self->next::method($nick);
 }
@@ -58,14 +62,14 @@ sub get_response {
   $url =~ s/#!/\?_escaped_fragment_=/;
 
   # BBC News article: headline and summary paragraph
-  if ( $url =~ m'^http://news\.bbc\.co\.uk/.*/\d{7,}\.stm$' ) {
+  if ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
     $head->parse( get( $url ) );
     my $headline = $head->header( 'X-Meta-Headline' );
     my $summary = $head->header( 'X-Meta-Description' );
     return "$headline \x{2014} $summary";
   }
   # Twitter status: screen name and tweet
-  elsif ( $url =~ m'^http://twitter.com/(\?_escaped_fragment_=/)?\w+/status(?:es)?/\d+$' ) {
+  elsif ( $url =~ m'^https?://twitter.com/(\?_escaped_fragment_=/)?\w+/status(?:es)?/\d+$' ) {
     $head->parse( get( $url ) );
     my $name = $head->header( 'X-Meta-Page-user-screen_name' );
     my $tweet = $head->header( 'X-Meta-Description');
