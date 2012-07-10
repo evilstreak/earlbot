@@ -131,7 +131,7 @@ sub irc_invite_state {
     );
 
     $channel =~ s/^#//; # Because Config::General uses hash as a comment
-    $config{'server'}{$self->{server}}{'channel'}{$channel} = {};
+    push @{$config{'server'}{$self->{server}}{'channel'}}, $channel;
     Config::General::SaveConfig($configFile, \%config);
 }
 
@@ -140,7 +140,10 @@ sub irc_kick_state {
     $self->log("irc_kick_state: $who, $channel");
 
     $channel =~ s/^#//; # Because Config::General uses hash as a comment
-    delete $config{'server'}{$self->{server}}{'channel'}{$channel};
+
+    my $channels = $config{'server'}{$self->{server}}{'channel'};
+    $config{'server'}{$self->{server}}{'channel'} = [ grep { $_ ne $channel } @$channels ];
+
     Config::General::SaveConfig($configFile, \%config);
 }
 
@@ -177,8 +180,29 @@ sub log_uri {
     return ();
 }
 
+sub upgrade_config {
+  my ( $class, $config ) = @_;
+
+  foreach my $server_config ( values %{$config->{'server'} } ) {
+    # Update config from
+    #   <channel><foo></foo><bar></bar></channel>
+    # to same for mas
+    #   channel foo
+    #   channel bar
+    my $ref = ref $server_config->{channel};
+    if ( $ref eq 'HASH' ) {
+       $server_config->{channel} = [ keys %{$server_config->{channel}} ];
+    }
+    elsif ( !$ref ) {
+       $server_config->{channel} = [ $server_config->{channel} ];
+    }
+  }
+}
+
 package main;
 use POSIX qw( setsid );
+
+Bot->upgrade_config( \%config );
 
 if (!defined $config{'detach'} || $config{'detach'}) {
 
@@ -196,8 +220,7 @@ my @servers = keys %{$config{'server'}};
 while (my $host = shift @servers) {
     my $server = $config{'server'}->{$host};
 
-    my @channelNames = keys %{$server->{channel}};
-    @channelNames = map { '#'.$_ } @channelNames;
+    my @channelNames = map { '#'.$_ } @{ $server->{channel} };
 
     my $bot = Bot->new (
       server    => $host,
