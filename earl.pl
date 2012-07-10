@@ -15,6 +15,7 @@ use DBI;
 use Date::Format;
 use DBD::SQLite;
 use Config::General;
+use JSON qw( decode_json );
 
 my $configFile = 'earl.conf';
 my $conf = new Config::General(
@@ -55,7 +56,6 @@ sub start_state {
 
 sub get_response {
   my $url = shift;
-  my $head = HTML::HeadParser->new;
 
   # Convert ajax URLs to non-js URLs (e.g. Twitter)
   # http://googlewebmastercentral.blogspot.com/2009/10/proposal-for-making-ajax-crawlable.html
@@ -63,22 +63,30 @@ sub get_response {
 
   # BBC News article: headline and summary paragraph
   if ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
+    my $head = HTML::HeadParser->new;
     $head->parse( get( $url ) );
     my $headline = $head->header( 'X-Meta-Headline' );
     my $summary = $head->header( 'X-Meta-Description' );
     return "$headline \x{2014} $summary";
   }
   # Twitter status: screen name and tweet
-  elsif ( $url =~ m'^https?://twitter.com/(\?_escaped_fragment_=/)?\w+/status(?:es)?/\d+$' ) {
-    $head->parse( get( $url ) );
-    my $name = $head->header( 'X-Meta-Page-user-screen_name' );
-    my $tweet = $head->header( 'X-Meta-Description');
-    return "$name \x{2014} $tweet";
+  elsif ( $url =~ m'^https?://twitter.com/(?:\?_escaped_fragment_=/)?\w+/status(?:es)?/(\d+)$' ) {
+    return get_tweet( $1 );
   }
   # Everything else: the title
   elsif ( my $title = title( $url ) ) {
     return $title;
   }
+}
+
+sub get_tweet {
+  my ( $id ) = @_;
+
+  my $url = "http://api.twitter.com/1/statuses/show/$id.json";
+
+  my $json = decode_json( get( $url ) );
+
+  return join( " \x{2014} ", $json->{user}{screen_name}, $json->{text} );
 }
 
 sub said {
@@ -142,7 +150,7 @@ sub log_uri {
 
     if (!$dbh) {
       $dbh = DBI->connect( "dbi:SQLite:earl.db") or die ("$DBI::errstr");
-      
+
       my $info = $dbh->table_info('', '', 'uri');
       if (!$info->fetch) {
         $dbh->do(
