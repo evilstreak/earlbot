@@ -2,25 +2,16 @@ detach   1
 neverolde   ^https?://wiki\.hackspace\.org\.uk
 <server>
     <irc.freenode.net>
-        <channel>
-            <flusspferd>
-            </flusspferd>
-            <juicejs>
-            </juicejs>
-            <london-hack-space-dev>
-            </london-hack-space-dev>
-            <#ukpolitics>
-            </#ukpolitics>
-            <dc4420>
-            </dc4420>
-        </channel>
+        # Leave off the leading # in channel names
+        channel flusspferd
+        channel juicejs
+        channel london-hack-space-dev
+        channel \#ukpolitics # This will join ##ukpolitics
+        channel dc4420
         nick   earlbot
     </irc.freenode.net>
     <irc.afternet.org>
-        <channel>
-            <randomnine>
-            </randomnine>
-        </channel>
+        channel randomnine
         nick   earl
     </irc.afternet.org>
 </server>

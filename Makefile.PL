@@ -16,5 +16,6 @@ requires 'DBI';
 requires 'Date::Format';
 requires 'DBD::SQLite';
 requires 'Config::General';
+requires 'JSON';
 
 WriteAll;
