@@ -5,7 +5,7 @@ use warnings;
 use strict;
 use URI::Title qw( title );
 use URI::Find::Simple qw( list_uris );
-use LWP::Simple;
+use LWP::Simple qw( get $ua );
 use Crypt::SSLeay;
 use HTML::HeadParser;
 use POE::Kernel;
@@ -82,9 +82,13 @@ sub get_response {
 sub get_tweet {
   my ( $id ) = @_;
 
-  my $url = "http://api.twitter.com/1/statuses/show/$id.json";
+  my $url = "https://api.twitter.com/1.1/statuses/show/$id.json";
 
-  my $json = decode_json( get( $url ) );
+  my $auth = 'Bearer ' . $config{ 'twittertoken' };
+  my $response = $ua->get( $url, 'Authorization' => $auth );
+  return unless $response->is_success;
+
+  my $json = decode_json( $response->decoded_content );
 
   return join( " \x{2014} ", $json->{user}{screen_name}, $json->{text} );
 }
@@ -95,7 +99,7 @@ sub said {
   return if $self->ignore_nick($args->{who});
 
   for ( list_uris( $args->{body} ) ) {
-    next unless $_ =~ /^http/i;
+    next unless $_ =~ /^https?/i;
 
     if ( my $reply = get_response( $_ ) ) {
       # Sanitise the reply to only include printable chars
