@@ -93,21 +93,38 @@ sub get_tweet {
   return join( " \x{2014} ", $json->{user}{screen_name}, $json->{text} );
 }
 
+sub canonicalize {
+  my $url = shift;
+
+  if ( $url =~ m'^https?://www.youtube.com/.*$' ) {
+    my $head = HTML::HeadParser->new;
+    $head->parse( get( $url ) );
+    my $link = $head->header( 'Link' );
+    # Seriously, what kind of format is this?
+    $link =~ m'<([^>]+)>; rel="canonical"';
+    $url = $1 if defined $1;
+  }
+  return $url;
+
+}
+
 sub said {
   my ( $self, $args ) = @_;
 
   return if $self->ignore_nick($args->{who});
 
-  for ( list_uris( $args->{body} ) ) {
-    next unless $_ =~ /^http/i;
+  for $url ( list_uris( $args->{body} ) ) {
+    next unless $url =~ /^http/i;
 
-    if ( my $reply = get_response( $_ ) ) {
+    $url = canonicalize( $url );
+
+    if ( my $reply = get_response( $url ) ) {
       # Sanitise the reply to only include printable chars
       $reply =~ s/[^[:print:]]//g;
 
       # See if this has been posted before, unless it's a whitelisted URL
       my $neverolde = $config{ 'neverolde' } || '^$';
-      my %result = log_uri( $_, $args->{channel}, $args->{who} ) unless $_ =~ m/$neverolde/i;
+      my %result = log_uri( $url, $args->{channel}, $args->{who} ) unless $url =~ m/$neverolde/i;
       my $olde = '';
       if (%result) {
         $olde = ' (First posted by '.$result{'nick'}.', '.time2str('%C', $result{'timestamp'}).')';
