@@ -64,6 +64,9 @@ sub start_state {
 sub get_response {
   my $url = shift;
 
+  # URI::Title::HTML provides no extension points so we have to replicate some logic here.
+  # Ultimately, we want to replace URI::Title::HTML with our own code, because it's nasty.
+
   # Convert ajax URLs to non-js URLs (e.g. Twitter)
   # http://googlewebmastercentral.blogspot.com/2009/10/proposal-for-making-ajax-crawlable.html
   $url =~ s/#!/\?_escaped_fragment_=/;
