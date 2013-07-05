@@ -14,15 +14,22 @@ use Class::C3;
 use DBI;
 use Date::Format;
 use DBD::SQLite;
+use Getopt::Long;
 use Config::General;
 use JSON qw( decode_json );
 
 my $configFile = 'earl.conf';
+my $url;
+
+GetOptions( "url=s" => \$url,
+            "config=s" => \$configFile );
+
 my $conf = new Config::General(
     -ConfigFile => $configFile,
     -AutoTrue   => 1,
 );
 my %config = $conf->getall;
+
 
 sub ignore_nick {
   my ($self, $nick) = @_;
@@ -224,6 +231,12 @@ package main;
 use POSIX qw( setsid );
 
 Bot->upgrade_config( \%config );
+
+if (defined $url) {
+    my $url = Bot::canonicalize( $url );
+    my $response = Bot::get_response( $url );
+    die $response;
+}
 
 if (!defined $config{'detach'} || $config{'detach'}) {
 
