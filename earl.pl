@@ -70,6 +70,7 @@ sub get_response {
   # Convert ajax URLs to non-js URLs (e.g. Twitter)
   # http://googlewebmastercentral.blogspot.com/2009/10/proposal-for-making-ajax-crawlable.html
   $url =~ s/#!/\?_escaped_fragment_=/;
+  $url =~ s#(//i.imgur.com/[^.]+)\.[^.]+$#$1#;
 
   # BBC News article: headline and summary paragraph
   if ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
