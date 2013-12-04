@@ -132,6 +132,9 @@ sub said {
       # Sanitise the reply to only include printable chars
       $reply =~ s/[^[:print:]]//g;
 
+      # Strip unicode of death for Core Text on Macs
+      $reply =~ s/\x{062e} \x{0337}\x{0334}\x{0310}\x{062e}//g;
+
       # See if this has been posted before, unless it's a whitelisted URL
       my $neverolde = $config{ 'neverolde' } || '^$';
       my %result = log_uri( $url, $args->{channel}, $args->{who} ) unless $url =~ m/$neverolde/i;
