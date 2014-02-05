@@ -239,6 +239,10 @@ use POSIX qw( setsid );
 
 Bot->upgrade_config( \%config );
 
+if (defined $config{'acceptlang'}) {
+	$Bot::ua->default_header('Accept-Language' => $config{'acceptlang'});
+}
+
 if (defined $url) {
     my $url = Bot::canonicalize( $url );
     my $response = Bot::get_response( $url );
