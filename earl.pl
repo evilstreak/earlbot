@@ -5,7 +5,7 @@ use warnings;
 use strict;
 use URI::Title qw( title );
 use URI::Find::Simple qw( list_uris );
-use LWP::Simple qw( get $ua );
+use LWP::Simple qw( $ua );
 use Crypt::SSLeay;
 use HTML::HeadParser;
 use POE::Kernel;
@@ -75,7 +75,7 @@ sub get_response {
   # BBC News article: headline and summary paragraph
   if ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
     my $head = HTML::HeadParser->new;
-    $head->parse( get( $url ) );
+    $head->parse( get_data( $url ) );
     my $headline = $head->header( 'X-Meta-Headline' );
     my $summary = $head->header( 'X-Meta-Description' );
     return "$headline \x{2014} $summary";
@@ -90,16 +90,24 @@ sub get_response {
   }
 }
 
+sub get_data {
+  my ($url, %get_params) = @_;
+  my $response = $ua->get($url, %get_params);
+
+  return unless $response->is_success;
+  return $response->decoded_content;
+}
+
 sub get_tweet {
   my ( $id ) = @_;
 
   my $url = "https://api.twitter.com/1.1/statuses/show/$id.json";
 
   my $auth = 'Bearer ' . $config{ 'twittertoken' };
-  my $response = $ua->get( $url, 'Authorization' => $auth );
-  return unless $response->is_success;
+  my $response = get_data( $url, 'Authorization' => $auth );
+  return unless $response;
 
-  my $json = decode_json( $response->decoded_content );
+  my $json = decode_json( $response );
 
   return join( " \x{2014} ", $json->{user}{screen_name}, $json->{text} );
 }
@@ -109,7 +117,7 @@ sub canonicalize {
 
   if ( $url =~ m'^https?://www.youtube.com/.*$' ) {
     my $head = HTML::HeadParser->new;
-    $head->parse( get( $url ) );
+    $head->parse( get_data( $url ) );
     my $link = $head->header( 'Link' );
     # Seriously, what kind of format is this?
     $link =~ m'<([^>]+)>; rel="canonical"';
