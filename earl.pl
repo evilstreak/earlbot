@@ -61,6 +61,28 @@ sub start_state {
   POE::Session::_register_state($session, "irc_kick", $self, "irc_kick_state");
 }
 
+sub canonicalize {
+  my ($url, $data) = @_;
+
+  my $head = HTML::HeadParser->new;
+  $head->parse( $data );
+  my $link = $head->header( 'Link' );
+  # Seriously, what kind of format is this?
+  $link =~ m'<([^>]+)>; rel="canonical"';
+  $url = $1 if defined $1;
+
+  return $url;
+
+}
+
+sub get_data {
+  my ($url, %get_params) = @_;
+  my $response = $ua->get($url, %get_params);
+
+  return unless $response->is_success;
+  return $response->decoded_content;
+}
+
 sub get_response {
   my $url = shift;
 
@@ -72,30 +94,26 @@ sub get_response {
   $url =~ s/#!/\?_escaped_fragment_=/;
   $url =~ s#(//i.imgur.com/[^.]+)\.[^.]+$#$1#;
 
-  # BBC News article: headline and summary paragraph
-  if ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
-    my $head = HTML::HeadParser->new;
-    $head->parse( get_data( $url ) );
-    my $headline = $head->header( 'X-Meta-Headline' );
-    my $summary = $head->header( 'X-Meta-Description' );
-    return "$headline \x{2014} $summary";
-  }
   # Twitter status: screen name and tweet
-  elsif ( $url =~ m'^https?://twitter.com/(?:\?_escaped_fragment_=/)?\w+/status(?:es)?/(\d+)$' ) {
-    return get_tweet( $1 );
-  }
-  # Everything else: the title
-  elsif ( my $title = title( $url ) ) {
-    return $title;
-  }
-}
+  if ( $url =~ m'^https?://twitter.com/(?:\?_escaped_fragment_=/)?\w+/status(?:es)?/(\d+)$' ) {
+    return ($url, get_tweet( $1 ));
+  } else {
+	  my $data = get_data($url);
+	  $url = canonicalize($url, $data);
 
-sub get_data {
-  my ($url, %get_params) = @_;
-  my $response = $ua->get($url, %get_params);
-
-  return unless $response->is_success;
-  return $response->decoded_content;
+    # BBC News article: headline and summary paragraph
+    if ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
+      my $head = HTML::HeadParser->new;
+      $head->parse( $data );
+      my $headline = $head->header( 'X-Meta-Headline' );
+      my $summary = $head->header( 'X-Meta-Description' );
+      return ($url, "$headline \x{2014} $summary");
+    }
+    # Everything else: the title
+    elsif ( my $title = title( $url ) ) {
+      return ($url, $title);
+    }
+  }
 }
 
 sub get_tweet {
@@ -112,21 +130,6 @@ sub get_tweet {
   return join( " \x{2014} ", $json->{user}{screen_name}, $json->{text} );
 }
 
-sub canonicalize {
-  my $url = shift;
-
-  if ( $url =~ m'^https?://www.youtube.com/.*$' ) {
-    my $head = HTML::HeadParser->new;
-    $head->parse( get_data( $url ) );
-    my $link = $head->header( 'Link' );
-    # Seriously, what kind of format is this?
-    $link =~ m'<([^>]+)>; rel="canonical"';
-    $url = $1 if defined $1;
-  }
-  return $url;
-
-}
-
 sub said {
   my ( $self, $args ) = @_;
 
@@ -135,9 +138,7 @@ sub said {
   for $url ( list_uris( $args->{body} ) ) {
     next unless $url =~ /^http/i;
 
-    $url = canonicalize( $url );
-
-    if ( my $reply = get_response( $url ) ) {
+    if ( my ($url, $reply) = get_response( $url ) ) {
       # Sanitise the reply to only include printable chars
       $reply =~ s/[^[:print:]]//g;
 
@@ -252,9 +253,8 @@ if (defined $config{'acceptlang'}) {
 }
 
 if (defined $url) {
-    my $url = Bot::canonicalize( $url );
-    my $response = Bot::get_response( $url );
-    die $response;
+    my ($url, $response) = Bot::get_response( $url );
+    die $url, " - ", $response;
 }
 
 if (!defined $config{'detach'} || $config{'detach'}) {
