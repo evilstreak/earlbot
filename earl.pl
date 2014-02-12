@@ -66,10 +66,10 @@ sub start_state {
 }
 
 sub canonicalize {
-  my ($url, $data) = @_;
+  my ($url, $data_ref) = @_;
 
   my $head = HTML::HeadParser->new;
-  $head->parse( $data );
+  $head->parse( $$data_ref );
   # TODO: Add support for link HTTP Header?
   if ( my $link = $head->header( 'Link' ) ) {
     # Seriously, what kind of format is this?
@@ -87,13 +87,13 @@ sub get_data {
   my $response = $ua->get($url, %get_params);
 
   return unless $response->is_success;
-  return $response->decoded_content;
+  return \$response->decoded_content;
 }
 
 sub get_img_title {
-  my $data = shift;
+  my $data_ref = shift;
 
-  my ($x, $y, $type) = imgsize(\$data);
+  my ($x, $y, $type) = imgsize($data_ref);
 
   return "$type ($x x $y)" if $x and $y;
 }
@@ -113,17 +113,17 @@ sub get_response {
   if ( $url =~ m'^https?://twitter.com/(?:\?_escaped_fragment_=/)?\w+/status(?:es)?/(\d+)$' ) {
     return ($url, get_tweet( $1 ));
   } else {
-    my $data = get_data($url);
-    $url = canonicalize($url, $data);
-    my $mime_type = $ft->checktype_contents($data);
+    my $data_ref = get_data($url);
+    $url = canonicalize($url, $data_ref);
+    my $mime_type = $ft->checktype_contents($$data_ref);
 
     if ( $mime_type =~ m'^image/' ) {
-      return ($url, get_img_title($data));
+      return ($url, get_img_title($data_ref));
     }
     # BBC News article: headline and summary paragraph
     elsif ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
       my $head = HTML::HeadParser->new;
-      $head->parse( $data );
+      $head->parse( $$data_ref );
       my $headline = $head->header( 'X-Meta-Headline' );
       my $summary = $head->header( 'X-Meta-Description' );
       return ($url, "$headline \x{2014} $summary");
@@ -141,10 +141,10 @@ sub get_tweet {
   my $url = "https://api.twitter.com/1.1/statuses/show/$id.json";
 
   my $auth = 'Bearer ' . $config{ 'twittertoken' };
-  my $response = get_data( $url, 'Authorization' => $auth );
-  return unless $response;
+  my $response_ref = get_data( $url, 'Authorization' => $auth );
+  return unless $response_ref;
 
-  my $json = decode_json( $response );
+  my $json = decode_json( $$response_ref );
 
   return join( " \x{2014} ", $json->{user}{screen_name}, $json->{text} );
 }
