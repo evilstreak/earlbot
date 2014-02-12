@@ -66,10 +66,12 @@ sub canonicalize {
 
   my $head = HTML::HeadParser->new;
   $head->parse( $data );
-  my $link = $head->header( 'Link' );
-  # Seriously, what kind of format is this?
-  $link =~ m'<([^>]+)>; rel="canonical"';
-  $url = $1 if defined $1;
+  # TODO: Add support for link tag. I mean, why is HTML::HeadParser picking up on the HTTP version...
+  if ( my $link = $head->header( 'Link' ) ) {
+    # Seriously, what kind of format is this?
+    $link =~ m'<([^>]+)>; rel="canonical"';
+    $url = $1 if defined $1;
+  }
 
   return $url;
 
