@@ -17,5 +17,7 @@ requires 'Date::Format';
 requires 'DBD::SQLite';
 requires 'Config::General';
 requires 'JSON';
+requires 'File::Type';
+requires 'Image::Size';
 
 WriteAll;

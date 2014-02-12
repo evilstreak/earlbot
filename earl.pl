@@ -17,9 +17,13 @@ use DBD::SQLite;
 use Getopt::Long;
 use Config::General;
 use JSON qw( decode_json );
+use File::Type;
+use Image::Size;
 
 my $configFile = 'earl.conf';
 my $url;
+my $ft = File::Type->new();
+$Image::Size::NO_CACHE = 1;
 
 GetOptions( "url=s" => \$url,
             "config=s" => \$configFile );
@@ -86,6 +90,14 @@ sub get_data {
   return $response->decoded_content;
 }
 
+sub get_img_title {
+  my $data = shift;
+
+  my ($x, $y, $type) = imgsize(\$data);
+
+  return "$type ($x x $y)" if $x and $y;
+}
+
 sub get_response {
   my $url = shift;
 
@@ -101,11 +113,15 @@ sub get_response {
   if ( $url =~ m'^https?://twitter.com/(?:\?_escaped_fragment_=/)?\w+/status(?:es)?/(\d+)$' ) {
     return ($url, get_tweet( $1 ));
   } else {
-	  my $data = get_data($url);
-	  $url = canonicalize($url, $data);
+    my $data = get_data($url);
+    $url = canonicalize($url, $data);
+    my $mime_type = $ft->checktype_contents($data);
 
+    if ( $mime_type =~ m'^image/' ) {
+      return ($url, get_img_title($data));
+    }
     # BBC News article: headline and summary paragraph
-    if ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
+    elsif ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
       my $head = HTML::HeadParser->new;
       $head->parse( $data );
       my $headline = $head->header( 'X-Meta-Headline' );
@@ -142,6 +158,8 @@ sub said {
     next unless $url =~ /^http/i;
 
     if ( my ($url, $reply) = get_response( $url ) ) {
+      next unless $url and $reply;
+
       # Sanitise the reply to only include printable chars
       $reply =~ s/[^[:print:]]//g;
 
