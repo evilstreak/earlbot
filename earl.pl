@@ -66,12 +66,10 @@ sub start_state {
 }
 
 sub canonicalize {
-  my ($url, $data_ref) = @_;
+  my ($url, $head_ref) = @_;
 
-  my $head = HTML::HeadParser->new;
-  $head->parse( $$data_ref );
   # TODO: Add support for link HTTP Header?
-  if ( my $link = $head->header( 'Link' ) ) {
+  if ( my $link = $$head_ref->header( 'Link' ) ) {
     # Seriously, what kind of format is this?
     if ( $link =~ m'<([^>]+)>; rel="canonical"') {
 	  $url = $1;
@@ -114,16 +112,18 @@ sub get_response {
     return ($url, get_tweet( $1 ));
   } else {
     my $data_ref = get_data($url);
-    $url = canonicalize($url, $data_ref);
     my $mime_type = $ft->checktype_contents($$data_ref);
+
+    my $head = HTML::HeadParser->new;
+    $head->parse( $$data_ref );
+
+    $url = canonicalize($url, \$head);
 
     if ( $mime_type =~ m'^image/' ) {
       return ($url, get_img_title($data_ref));
     }
     # BBC News article: headline and summary paragraph
     elsif ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
-      my $head = HTML::HeadParser->new;
-      $head->parse( $$data_ref );
       my $headline = $head->header( 'X-Meta-Headline' );
       my $summary = $head->header( 'X-Meta-Description' );
       return ($url, "$headline \x{2014} $summary");
