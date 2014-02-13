@@ -3,7 +3,6 @@ package Bot;
 use base qw(Bot::BasicBot);
 use warnings;
 use strict;
-use URI::Title qw( title );
 use URI::Find::Simple qw( list_uris );
 use LWP::Simple qw( $ua );
 use Crypt::SSLeay;
@@ -19,6 +18,7 @@ use Config::General;
 use JSON qw( decode_json );
 use File::Type;
 use Image::Size;
+use HTML::Entities;
 
 my $configFile = 'earl.conf';
 my $url;
@@ -96,11 +96,14 @@ sub get_img_title {
   return "$type ($x x $y)" if $x and $y;
 }
 
+sub title {
+  my $head_ref = shift;
+
+  return decode_entities($$head_ref->header('Title'));
+}
+
 sub get_response {
   my $url = shift;
-
-  # URI::Title::HTML provides no extension points so we have to replicate some logic here.
-  # Ultimately, we want to replace URI::Title::HTML with our own code, because it's nasty.
 
   # Convert ajax URLs to non-js URLs (e.g. Twitter)
   # http://googlewebmastercentral.blogspot.com/2009/10/proposal-for-making-ajax-crawlable.html
@@ -129,7 +132,7 @@ sub get_response {
       return ($url, "$headline \x{2014} $summary");
     }
     # Everything else: the title
-    elsif ( my $title = title( $url ) ) {
+    elsif ( my $title = title( \$head ) ) {
       return ($url, $title);
     }
   }

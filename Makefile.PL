@@ -4,7 +4,6 @@ version '0.01';
 name 'earlbot';
 
 requires 'Bot::BasicBot';
-requires 'URI::Title';
 requires 'URI::Find::Simple';
 requires 'LWP::Simple';
 requires 'Crypt::SSLeay';
@@ -19,5 +18,6 @@ requires 'Config::General';
 requires 'JSON';
 requires 'File::Type';
 requires 'Image::Size';
+requires 'HTML::Entities';
 
 WriteAll;
