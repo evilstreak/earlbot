@@ -41,7 +41,9 @@ if (defined $config{'acceptlang'}) {
 	$ua->default_header('Accept-Language' => $config{'acceptlang'});
 }
 
-my $max_ret_size = 32*1024;
+# 64K ought to be enough for anybody? Apparently 32 isn't for BBC to finish HEAD.
+# TODO: Configurable?
+my $max_ret_size = 48*1024;
 my $ua_limited = $ua->clone;
 $ua_limited->max_size($max_ret_size);
 $ua_limited->default_header("Range" => "bytes=0-$max_ret_size");
@@ -93,8 +95,12 @@ sub canonicalize {
 }
 
 sub get_data {
-  my ($url, %get_params) = @_;
-  my $response = $ua->get($url, %get_params);
+  my $url = shift;
+
+  my $response = $ua_limited->get($url);
+
+  # Servers that don't like range
+  $response = $ua->get($url) if $response->code >= 400 and $response->code < 500 and $response->code != 404;
 
   return \$response;
 }
@@ -158,10 +164,10 @@ sub get_tweet {
   my $url = "https://api.twitter.com/1.1/statuses/show/$id.json";
 
   my $auth = 'Bearer ' . $config{ 'twittertoken' };
-  my $response_ref = get_data( $url, 'Authorization' => $auth );
-  return unless $$response_ref->is_success;
+  my $response = $ua->get( $url, 'Authorization' => $auth );
+  return unless $response->is_success;
 
-  my $json = decode_json( $$response_ref->decoded_content );
+  my $json = decode_json( $response->decoded_content );
 
   return join( " \x{2014} ", $json->{user}{screen_name}, $json->{text} );
 }
