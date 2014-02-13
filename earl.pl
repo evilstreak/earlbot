@@ -3,11 +3,9 @@ package Bot;
 use base qw(Bot::BasicBot);
 use warnings;
 use strict;
-use URI::Title qw( title );
 use URI::Find::Simple qw( list_uris );
-use LWP::Simple qw( get $ua );
+use LWP::UserAgent;
 use Crypt::SSLeay;
-use HTML::HeadParser;
 use POE::Kernel;
 use POE::Session;
 use Class::C3;
@@ -17,6 +15,9 @@ use DBD::SQLite;
 use Getopt::Long;
 use Config::General;
 use JSON qw( decode_json );
+use File::Type;
+use Image::Size;
+use HTML::Entities;
 
 my $configFile = 'earl.conf';
 my $url;
@@ -29,6 +30,23 @@ my $conf = new Config::General(
     -AutoTrue   => 1,
 );
 my %config = $conf->getall;
+
+# Some shared things
+my $ft = File::Type->new();
+$Image::Size::NO_CACHE = 1;
+
+my $ua = LWP::UserAgent->new;
+$ua->timeout(20);
+if (defined $config{'acceptlang'}) {
+	$ua->default_header('Accept-Language' => $config{'acceptlang'});
+}
+# 64K ought to be enough for anybody? Apparently 32 isn't for BBC to finish HEAD.
+# TODO: Configurable?
+my $max_ret_size = 64*1024;
+$ua->max_size($max_ret_size);
+
+my $ua_limited = $ua->clone;
+$ua_limited->default_header("Range" => "bytes=0-$max_ret_size");
 
 
 sub ignore_nick {
@@ -61,32 +79,82 @@ sub start_state {
   POE::Session::_register_state($session, "irc_kick", $self, "irc_kick_state");
 }
 
-sub get_response {
+sub canonicalize {
+  my ($url, $response_ref) = @_;
+
+  # TODO: Add support for link HTTP Header?
+  if ( my $link = $$response_ref->header( 'Link' ) ) {
+    # Seriously, what kind of format is this?
+    if ( $link =~ m'<([^>]+)>; rel="canonical"') {
+	  $url = $1;
+    }
+  }
+
+  return $url;
+
+}
+
+sub get_data {
   my $url = shift;
 
-  # URI::Title::HTML provides no extension points so we have to replicate some logic here.
-  # Ultimately, we want to replace URI::Title::HTML with our own code, because it's nasty.
+  my $response = $ua_limited->get($url);
+
+  # Servers that don't like range
+  $response = $ua->get($url) if $response->code >= 400 and $response->code < 500 and $response->code != 404;
+
+  return \$response;
+}
+
+sub get_img_title {
+  my $data_ref = shift;
+
+  my ($x, $y, $type) = imgsize($data_ref);
+
+  return "$type ($x x $y)" if $x and $y;
+}
+
+sub title {
+  my $response_ref = shift;
+  return unless my $title = decode_entities($$response_ref->header('Title'));
+
+  $title =~ s/^\s+|\s+$//g;
+
+  return $title;
+}
+
+sub get_response {
+  my $url = shift;
 
   # Convert ajax URLs to non-js URLs (e.g. Twitter)
   # http://googlewebmastercentral.blogspot.com/2009/10/proposal-for-making-ajax-crawlable.html
   $url =~ s/#!/\?_escaped_fragment_=/;
   $url =~ s#(//i.imgur.com/[^.]+)\.[^.]+$#$1#;
 
-  # BBC News article: headline and summary paragraph
-  if ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
-    my $head = HTML::HeadParser->new;
-    $head->parse( get( $url ) );
-    my $headline = $head->header( 'X-Meta-Headline' );
-    my $summary = $head->header( 'X-Meta-Description' );
-    return "$headline \x{2014} $summary";
-  }
   # Twitter status: screen name and tweet
-  elsif ( $url =~ m'^https?://twitter.com/(?:\?_escaped_fragment_=/)?\w+/status(?:es)?/(\d+)$' ) {
-    return get_tweet( $1 );
-  }
-  # Everything else: the title
-  elsif ( my $title = title( $url ) ) {
-    return $title;
+  if ( $url =~ m'^https?://twitter.com/(?:\?_escaped_fragment_=/)?\w+/status(?:es)?/(\d+)$' ) {
+    return ($url, get_tweet( $1 ));
+  } else {
+    my $response_ref = get_data($url);
+	return unless $$response_ref->is_success;
+
+	my $data = $$response_ref->decoded_content;
+    my $mime_type = $ft->checktype_contents($data);
+
+    $url = canonicalize($url, $response_ref);
+
+    if ( $mime_type =~ m'^image/' ) {
+      return ($url, get_img_title(\$data));
+    }
+    # BBC News article: headline and summary paragraph
+    elsif ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
+      my $headline = $$response_ref->header( 'X-Meta-Headline' );
+      my $summary = $$response_ref->header( 'X-Meta-Description' );
+      return ($url, "$headline \x{2014} $summary");
+    }
+    # Everything else: the title
+    elsif ( my $title = title( $response_ref ) ) {
+      return ($url, $title);
+    }
   }
 }
 
@@ -104,21 +172,6 @@ sub get_tweet {
   return join( " \x{2014} ", $json->{user}{screen_name}, $json->{text} );
 }
 
-sub canonicalize {
-  my $url = shift;
-
-  if ( $url =~ m'^https?://www.youtube.com/.*$' ) {
-    my $head = HTML::HeadParser->new;
-    $head->parse( get( $url ) );
-    my $link = $head->header( 'Link' );
-    # Seriously, what kind of format is this?
-    $link =~ m'<([^>]+)>; rel="canonical"';
-    $url = $1 if defined $1;
-  }
-  return $url;
-
-}
-
 sub said {
   my ( $self, $args ) = @_;
 
@@ -127,9 +180,9 @@ sub said {
   for $url ( list_uris( $args->{body} ) ) {
     next unless $url =~ /^http/i;
 
-    $url = canonicalize( $url );
+    if ( my ($url, $reply) = get_response( $url ) ) {
+      next unless $url and $reply;
 
-    if ( my $reply = get_response( $url ) ) {
       # Sanitise the reply to only include printable chars
       $reply =~ s/[^[:print:]]//g;
 
@@ -240,9 +293,8 @@ use POSIX qw( setsid );
 Bot->upgrade_config( \%config );
 
 if (defined $url) {
-    my $url = Bot::canonicalize( $url );
-    my $response = Bot::get_response( $url );
-    die $response;
+    my ($url, $response) = Bot::get_response( $url );
+    die $url, " - ", $response;
 }
 
 if (!defined $config{'detach'} || $config{'detach'}) {
