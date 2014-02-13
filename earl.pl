@@ -4,7 +4,7 @@ use base qw(Bot::BasicBot);
 use warnings;
 use strict;
 use URI::Find::Simple qw( list_uris );
-use LWP::Simple qw( $ua );
+use LWP::UserAgent;
 use Crypt::SSLeay;
 use POE::Kernel;
 use POE::Session;
@@ -21,8 +21,6 @@ use HTML::Entities;
 
 my $configFile = 'earl.conf';
 my $url;
-my $ft = File::Type->new();
-$Image::Size::NO_CACHE = 1;
 
 GetOptions( "url=s" => \$url,
             "config=s" => \$configFile );
@@ -32,6 +30,21 @@ my $conf = new Config::General(
     -AutoTrue   => 1,
 );
 my %config = $conf->getall;
+
+# Some shared things
+my $ft = File::Type->new();
+$Image::Size::NO_CACHE = 1;
+
+my $ua = LWP::UserAgent->new;
+$ua->timeout(20);
+if (defined $config{'acceptlang'}) {
+	$ua->default_header('Accept-Language' => $config{'acceptlang'});
+}
+
+my $max_ret_size = 32*1024;
+my $ua_limited = $ua->clone;
+$ua_limited->max_size($max_ret_size);
+$ua_limited->default_header("Range" => "bytes=0-$max_ret_size");
 
 
 sub ignore_nick {
@@ -272,10 +285,6 @@ package main;
 use POSIX qw( setsid );
 
 Bot->upgrade_config( \%config );
-
-if (defined $config{'acceptlang'}) {
-	$Bot::ua->default_header('Accept-Language' => $config{'acceptlang'});
-}
 
 if (defined $url) {
     my ($url, $response) = Bot::get_response( $url );

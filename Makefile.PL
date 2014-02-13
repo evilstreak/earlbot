@@ -5,7 +5,7 @@ name 'earlbot';
 
 requires 'Bot::BasicBot';
 requires 'URI::Find::Simple';
-requires 'LWP::Simple';
+requires 'LWP::UserAgent';
 requires 'Crypt::SSLeay';
 requires 'POE::Kernel';
 requires 'POE::Session';
