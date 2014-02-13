@@ -6,7 +6,6 @@ use strict;
 use URI::Find::Simple qw( list_uris );
 use LWP::Simple qw( $ua );
 use Crypt::SSLeay;
-use HTML::HeadParser;
 use POE::Kernel;
 use POE::Session;
 use Class::C3;
@@ -66,10 +65,10 @@ sub start_state {
 }
 
 sub canonicalize {
-  my ($url, $head_ref) = @_;
+  my ($url, $response_ref) = @_;
 
   # TODO: Add support for link HTTP Header?
-  if ( my $link = $$head_ref->header( 'Link' ) ) {
+  if ( my $link = $$response_ref->header( 'Link' ) ) {
     # Seriously, what kind of format is this?
     if ( $link =~ m'<([^>]+)>; rel="canonical"') {
 	  $url = $1;
@@ -84,8 +83,7 @@ sub get_data {
   my ($url, %get_params) = @_;
   my $response = $ua->get($url, %get_params);
 
-  return unless $response->is_success;
-  return \$response->decoded_content;
+  return \$response;
 }
 
 sub get_img_title {
@@ -97,9 +95,9 @@ sub get_img_title {
 }
 
 sub title {
-  my $head_ref = shift;
+  my $response_ref = shift;
 
-  return decode_entities($$head_ref->header('Title'));
+  return decode_entities($$response_ref->header('Title'));
 }
 
 sub get_response {
@@ -114,25 +112,25 @@ sub get_response {
   if ( $url =~ m'^https?://twitter.com/(?:\?_escaped_fragment_=/)?\w+/status(?:es)?/(\d+)$' ) {
     return ($url, get_tweet( $1 ));
   } else {
-    my $data_ref = get_data($url);
-    my $mime_type = $ft->checktype_contents($$data_ref);
+    my $response_ref = get_data($url);
+	return unless $$response_ref->is_success;
 
-    my $head = HTML::HeadParser->new;
-    $head->parse( $$data_ref );
+	my $data = $$response_ref->decoded_content;
+    my $mime_type = $ft->checktype_contents($data);
 
-    $url = canonicalize($url, \$head);
+    $url = canonicalize($url, $response_ref);
 
     if ( $mime_type =~ m'^image/' ) {
-      return ($url, get_img_title($data_ref));
+      return ($url, get_img_title(\$data));
     }
     # BBC News article: headline and summary paragraph
     elsif ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
-      my $headline = $head->header( 'X-Meta-Headline' );
-      my $summary = $head->header( 'X-Meta-Description' );
+      my $headline = $$response_ref->header( 'X-Meta-Headline' );
+      my $summary = $$response_ref->header( 'X-Meta-Description' );
       return ($url, "$headline \x{2014} $summary");
     }
     # Everything else: the title
-    elsif ( my $title = title( \$head ) ) {
+    elsif ( my $title = title( $response_ref ) ) {
       return ($url, $title);
     }
   }
@@ -145,9 +143,9 @@ sub get_tweet {
 
   my $auth = 'Bearer ' . $config{ 'twittertoken' };
   my $response_ref = get_data( $url, 'Authorization' => $auth );
-  return unless $response_ref;
+  return unless $$response_ref->is_success;
 
-  my $json = decode_json( $$response_ref );
+  my $json = decode_json( $$response_ref->decoded_content );
 
   return join( " \x{2014} ", $json->{user}{screen_name}, $json->{text} );
 }

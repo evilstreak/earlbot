@@ -7,7 +7,6 @@ requires 'Bot::BasicBot';
 requires 'URI::Find::Simple';
 requires 'LWP::Simple';
 requires 'Crypt::SSLeay';
-requires 'HTML::HeadParser';
 requires 'POE::Kernel';
 requires 'POE::Session';
 requires 'Class::C3';
