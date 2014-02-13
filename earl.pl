@@ -40,12 +40,12 @@ $ua->timeout(20);
 if (defined $config{'acceptlang'}) {
 	$ua->default_header('Accept-Language' => $config{'acceptlang'});
 }
-
 # 64K ought to be enough for anybody? Apparently 32 isn't for BBC to finish HEAD.
 # TODO: Configurable?
-my $max_ret_size = 48*1024;
+my $max_ret_size = 64*1024;
+$ua->max_size($max_ret_size);
+
 my $ua_limited = $ua->clone;
-$ua_limited->max_size($max_ret_size);
 $ua_limited->default_header("Range" => "bytes=0-$max_ret_size");
 
 
