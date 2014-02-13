@@ -96,8 +96,11 @@ sub get_img_title {
 
 sub title {
   my $response_ref = shift;
+  my $title = decode_entities($$response_ref->header('Title'));
 
-  return decode_entities($$response_ref->header('Title'));
+  $title =~ s/^\s+|\s+$//g;
+
+  return $title;
 }
 
 sub get_response {
