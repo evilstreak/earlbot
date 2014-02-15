@@ -168,8 +168,20 @@ sub get_tweet {
   return unless $response->is_success;
 
   my $json = decode_json( $response->decoded_content );
+  my $text = $json->{text};
 
-  return join( " \x{2014} ", $json->{user}{screen_name}, $json->{text} );
+  if (my $entities = $json->{entities}) {
+    foreach my $entity (@{$entities->{media}}, @{$entities->{urls}}) {
+      if (my @indices = @{$entity->{indices}} and $entity->{expanded_url}) {
+        my $size = $indices[1] - $indices[0];
+        substr($text, $indices[0], $size) =  $entity->{expanded_url};
+
+        # TODO: Grab expanded URLs
+      }
+    }
+  }
+
+  return join( " \x{2014} ", $json->{user}{screen_name}, $text );
 }
 
 sub said {
