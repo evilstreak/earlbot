@@ -184,7 +184,7 @@ sub get_tweet {
 
         if (not defined $entity->{media_url}) {
           next unless my (undef, $ent_response) = get_simple_response($ent_url);
-          $text = $text . " => " . $ent_response;
+          $text = $text . " > " . $ent_response;
         }
       }
     }
