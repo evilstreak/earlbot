@@ -178,11 +178,14 @@ sub get_tweet {
 
   if (my $entities = $json->{entities}) {
     foreach my $entity (@{$entities->{media}}, @{$entities->{urls}}) {
-      if (my @indices = @{$entity->{indices}} and $entity->{expanded_url}) {
+      if (my @indices = @{$entity->{indices}} and my $ent_url = $entity->{expanded_url}) {
         my $size = $indices[1] - $indices[0];
-        substr($text, $indices[0], $size) =  $entity->{expanded_url};
+        substr($text, $indices[0], $size) =  $ent_url;
 
-        # TODO: Grab expanded URLs
+        if (not defined $entity->{media_url}) {
+          next unless my (undef, $ent_response) = get_simple_response($ent_url);
+          $text = $text . " => " . $ent_response;
+        }
       }
     }
   }
