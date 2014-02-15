@@ -122,6 +122,32 @@ sub title {
   return $title;
 }
 
+sub get_simple_response {
+  my $url = shift;
+
+  my $response_ref = get_data($url);
+  return unless $$response_ref->is_success;
+
+  my $data = $$response_ref->decoded_content;
+  my $mime_type = $ft->checktype_contents($data);
+
+  $url = canonicalize($url, $response_ref);
+
+  if ( $mime_type =~ m'^image/' ) {
+    return ($url, get_img_title(\$data));
+  }
+  # BBC News article: headline and summary paragraph
+  elsif ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
+    my $headline = $$response_ref->header( 'X-Meta-Headline' );
+    my $summary = $$response_ref->header( 'X-Meta-Description' );
+    return ($url, "$headline \x{2014} $summary");
+  }
+  # Everything else: the title
+  elsif ( my $title = title( $response_ref ) ) {
+    return ($url, $title);
+  }
+}
+
 sub get_response {
   my $url = shift;
 
@@ -134,27 +160,7 @@ sub get_response {
   if ( $url =~ m'^https?://twitter.com/(?:\?_escaped_fragment_=/)?\w+/status(?:es)?/(\d+)$' ) {
     return ($url, get_tweet( $1 ));
   } else {
-    my $response_ref = get_data($url);
-	return unless $$response_ref->is_success;
-
-	my $data = $$response_ref->decoded_content;
-    my $mime_type = $ft->checktype_contents($data);
-
-    $url = canonicalize($url, $response_ref);
-
-    if ( $mime_type =~ m'^image/' ) {
-      return ($url, get_img_title(\$data));
-    }
-    # BBC News article: headline and summary paragraph
-    elsif ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
-      my $headline = $$response_ref->header( 'X-Meta-Headline' );
-      my $summary = $$response_ref->header( 'X-Meta-Description' );
-      return ($url, "$headline \x{2014} $summary");
-    }
-    # Everything else: the title
-    elsif ( my $title = title( $response_ref ) ) {
-      return ($url, $title);
-    }
+    return get_simple_response($url);
   }
 }
 
