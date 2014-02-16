@@ -193,10 +193,10 @@ sub get_tweet {
     }
 
     foreach my $entity (@{$entities->{media}}) {
-      if (my @indices = @{$entity->{indices}} and my $ent_url = $entity->{display_url}) {
+      if (my @indices = @{$entity->{indices}}) {
         # Second index is next character after URL
         @text_array[$indices[0]..($indices[1] - 1)] = @replace_array;
-        $text_array[$indices[0]] = $ent_url;
+        $text_array[$indices[0]] = "*IMG*";
       }
     }
 
