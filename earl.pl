@@ -181,16 +181,22 @@ sub get_tweet {
     # Perl is bonkers
     my @replace_array = ("") x $#text_array;
 
-    foreach my $entity (@{$entities->{media}}, @{$entities->{urls}}) {
+    foreach my $entity (@{$entities->{urls}}) {
       if (my @indices = @{$entity->{indices}} and my $ent_url = $entity->{expanded_url}) {
         # Second index is next character after URL
         @text_array[$indices[0]..($indices[1] - 1)] = @replace_array;
         $text_array[$indices[0]] = $ent_url;
 
-        if (not defined $entity->{media_url}) {
-          next unless my (undef, $ent_response) = get_simple_response($ent_url);
-          push(@text_array, (" > ", $ent_response));
-        }
+        next unless my (undef, $ent_response) = get_simple_response($ent_url);
+        push(@text_array, (" > ", $ent_response));
+      }
+    }
+
+    foreach my $entity (@{$entities->{media}}) {
+      if (my @indices = @{$entity->{indices}} and my $ent_url = $entity->{display_url}) {
+        # Second index is next character after URL
+        @text_array[$indices[0]..($indices[1] - 1)] = @replace_array;
+        $text_array[$indices[0]] = $ent_url;
       }
     }
 
