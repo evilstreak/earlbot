@@ -187,8 +187,8 @@ sub get_tweet {
         @text_array[$indices[0]..($indices[1] - 1)] = @replace_array;
         $text_array[$indices[0]] = $ent_url;
 
-        next unless my (undef, $ent_response) = get_simple_response($ent_url);
-        push(@text_array, (" > ", $ent_response));
+        my (undef, $ent_response) = get_simple_response($ent_url);
+        push(@text_array, (" > ", $ent_response)) if $ent_response;
       }
     }
 
@@ -214,8 +214,8 @@ sub said {
   for $url ( list_uris( $args->{body} ) ) {
     next unless $url =~ /^http/i;
 
-    if ( my ($url, $reply) = get_response( $url ) ) {
-      next unless $url and $reply;
+    my ($url, $reply) = get_response( $url );
+    if ( $url and $reply ) {
 
       # Sanitise the reply to only include printable chars
       $reply =~ s/[^[:print:]]//g;
