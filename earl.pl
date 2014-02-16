@@ -177,17 +177,24 @@ sub get_tweet {
   my $text = $json->{text};
 
   if (my $entities = $json->{entities}) {
+    my @text_array = split("", $text);
+    # Perl is bonkers
+    my @replace_array = ("") x $#text_array;
+
     foreach my $entity (@{$entities->{media}}, @{$entities->{urls}}) {
       if (my @indices = @{$entity->{indices}} and my $ent_url = $entity->{expanded_url}) {
-        my $size = $indices[1] - $indices[0];
-        substr($text, $indices[0], $size) =  $ent_url;
+        # Second index is next character after URL
+        @text_array[$indices[0]..($indices[1] - 1)] = @replace_array;
+        $text_array[$indices[0]] = $ent_url;
 
         if (not defined $entity->{media_url}) {
           next unless my (undef, $ent_response) = get_simple_response($ent_url);
-          $text = $text . " > " . $ent_response;
+          push(@text_array, (" > ", $ent_response));
         }
       }
     }
+
+    $text = join("", @text_array);
   }
 
   return join( " \x{2014} ", $json->{user}{screen_name}, $text );
