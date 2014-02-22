@@ -258,8 +258,9 @@ sub irc_invite_state {
 }
 
 sub irc_kick_state {
-    my ( $self, $who, $channel, $kernel ) = @_[ OBJECT, ARG0, ARG1, KERNEL ];
-    $self->log("irc_kick_state: $who, $channel");
+    my ( $self, $who, $channel, $target, $reason, $kernel ) = @_[ OBJECT, ARG0, ARG1, ARG2, ARG3, KERNEL ];
+    $self->log("irc_kick_state: $who, $channel, $target, $reason");
+    return if $target ne $self->{nick};
 
     $channel =~ s/^#//; # Because Config::General uses hash as a comment
 
