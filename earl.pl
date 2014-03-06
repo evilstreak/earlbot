@@ -218,6 +218,7 @@ sub said {
     if ( $url and $reply ) {
 
       # Sanitise the reply to only include printable chars
+      $reply =~ s/\s+/ /g;
       $reply =~ s/[^[:print:]]//g;
 
       # Strip unicode of death for Core Text on Macs
