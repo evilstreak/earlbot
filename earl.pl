@@ -123,8 +123,8 @@ sub title {
   }
   return unless $title;
 
-  $title =~ s/^\s+|\s+$//g;
   $title = decode_entities($title);
+  $title =~ s/^\s+|\s+$//g;
 
   return $title;
 }
