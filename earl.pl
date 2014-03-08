@@ -115,7 +115,7 @@ sub get_img_title {
 
 sub title {
   my $response_ref = shift;
-  my $title = decode_entities($$response_ref->header('Title'));
+  my $title = $$response_ref->header('Title');
   # Some sites don't finish off header correctly, try a regex instead
   if (!$title) {
     $$response_ref->decoded_content =~ /<title.*?>(.+?)<\/title/ims;
@@ -123,6 +123,7 @@ sub title {
   }
   return unless $title;
 
+  $title = decode_entities($title);
   $title =~ s/^\s+|\s+$//g;
 
   return $title;
