@@ -18,6 +18,7 @@ use JSON qw( decode_json );
 use File::Type;
 use Image::Size;
 use HTML::Entities;
+use Encode;
 
 my $configFile = 'earl.conf';
 my $url;
@@ -115,7 +116,8 @@ sub get_img_title {
 
 sub title {
   my $response_ref = shift;
-  my $title = $$response_ref->header('Title');
+  # Strangely doesn't seem to decode title by default
+  my $title = decode($$response_ref->content_charset, $$response_ref->header('Title'));
   # Some sites don't finish off header correctly, try a regex instead
   if (!$title) {
     $$response_ref->decoded_content =~ /<title.*?>(.+?)<\/title/ims;
