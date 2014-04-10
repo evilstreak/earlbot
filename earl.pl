@@ -182,7 +182,7 @@ sub get_tweet {
   my $response = $ua->get( $url, 'Authorization' => $auth );
   return unless $response->is_success;
 
-  my $json = decode_json( $response->decoded_content );
+  my $json = decode_json( decode_entities( $response->decoded_content ) );
   my $text = $json->{text};
 
   if (my $entities = $json->{entities}) {
