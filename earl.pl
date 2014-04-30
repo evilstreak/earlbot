@@ -45,6 +45,9 @@ if (defined $config{'acceptlang'}) {
 # TODO: Configurable?
 my $max_ret_size = 64*1024;
 $ua->max_size($max_ret_size);
+if (defined $config{'useragent'}) {
+	$ua->agent($config{'useragent'});
+}
 
 my $ua_limited = $ua->clone;
 $ua_limited->default_header("Range" => "bytes=0-$max_ret_size");
