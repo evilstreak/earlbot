@@ -87,7 +87,7 @@ sub canonicalize {
   my ($url, $response_ref) = @_;
 
   # TODO: Add support for link HTTP Header?
-  if ( my $link = $$response_ref->header( 'Link' ) ) {
+  if ( my $link = decode($$response_ref->content_charset, $$response_ref->header( 'Link' ))) {
     # Seriously, what kind of format is this?
     if ( $link =~ m'<([^>]+)>; rel="canonical"') {
 	  $url = $1;
@@ -150,8 +150,8 @@ sub get_simple_response {
   }
   # BBC News article: headline and summary paragraph
   elsif ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
-    my $headline = $$response_ref->header( 'X-Meta-Headline' );
-    my $summary = $$response_ref->header( 'X-Meta-Description' );
+    my $headline = decode($$response_ref->content_charset, $$response_ref->header( 'X-Meta-Headline' ));
+    my $summary = decode($$response_ref->content_charset, $$response_ref->header( 'X-Meta-Description' ));
     return ($url, "$headline \x{2014} $summary");
   }
   # Everything else: the title
