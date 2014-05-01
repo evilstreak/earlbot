@@ -1,6 +1,7 @@
 detach   1
 neverolde   ^https?://wiki\.hackspace\.org\.uk
 acceptlang en
+useragent Mozilla/5.0
 <server>
     <irc.freenode.net>
         # Leave off the leading # in channel names
