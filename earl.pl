@@ -169,7 +169,7 @@ sub get_response {
   $url =~ s#(//i.imgur.com/[^.]+)\.[^.]+$#$1#;
 
   # Twitter status: screen name and tweet
-  if ( $url =~ m'^https?://twitter.com/(?:\?_escaped_fragment_=/)?\w+/status(?:es)?/(\d+)(/.*)?$' ) {
+  if ( $url =~ m'^https?://(?:www.|pic.)?twitter.com/(?:\?_escaped_fragment_=/)?\w+/status(?:es)?/(\d+)(/.*)?$' ) {
     return ($url, get_tweet( $1 ));
   } else {
     return get_simple_response($url);
