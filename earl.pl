@@ -185,7 +185,7 @@ sub get_tweet {
   my $response = $ua->get( $url, 'Authorization' => $auth );
   return unless $response->is_success;
 
-  my $json = decode_json( decode_entities( $response->decoded_content ) );
+  my $json = decode_json($response->decoded_content);
   my $text = $json->{text};
 
   if (my $entities = $json->{entities}) {
@@ -215,7 +215,7 @@ sub get_tweet {
     $text = join("", @text_array);
   }
 
-  return join( " \x{2014} ", $json->{user}{screen_name}, $text );
+  return join( " \x{2014} ", $json->{user}{screen_name}, decode_entities($text) );
 }
 
 sub said {
