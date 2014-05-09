@@ -83,11 +83,22 @@ sub start_state {
   POE::Session::_register_state($session, "irc_kick", $self, "irc_kick_state");
 }
 
+sub decode_header {
+  my ($response_ref, $header_name) = @_;
+
+  my $header_value = $$response_ref->header($header_name);
+  if ((my $content_charset = $$response_ref->content_charset) and $header_value) {
+	  $header_value = decode($content_charset, $header_value);
+  }
+
+  return $header_value;
+}
+
 sub canonicalize {
   my ($url, $response_ref) = @_;
 
   # TODO: Add support for link HTTP Header?
-  if ( my $link = decode($$response_ref->content_charset, $$response_ref->header( 'Link' ))) {
+  if (my $link = decode_header($response_ref, 'Link')) {
     # Seriously, what kind of format is this?
     if ( $link =~ m'<([^>]+)>; rel="canonical"') {
 	  $url = $1;
@@ -120,7 +131,7 @@ sub get_img_title {
 sub title {
   my $response_ref = shift;
   # Strangely doesn't seem to decode title by default
-  my $title = decode($$response_ref->content_charset, $$response_ref->header('Title'));
+  my $title = decode_header($response_ref, 'Title');
   # Some sites don't finish off header correctly, try a regex instead
   if (!$title) {
     $$response_ref->decoded_content =~ /<title.*?>(.+?)<\/title/ims;
@@ -141,6 +152,7 @@ sub get_simple_response {
   return unless $$response_ref->is_success;
 
   my $data = $$response_ref->decoded_content;
+  $data = $$response_ref->content unless $data;
   my $mime_type = $ft->checktype_contents($data);
 
   $url = canonicalize($url, $response_ref);
@@ -150,8 +162,8 @@ sub get_simple_response {
   }
   # BBC News article: headline and summary paragraph
   elsif ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
-    my $headline = decode($$response_ref->content_charset, $$response_ref->header( 'X-Meta-Headline' ));
-    my $summary = decode($$response_ref->content_charset, $$response_ref->header( 'X-Meta-Description' ));
+    my $headline = decode_header($response_ref, 'X-Meta-Headline');
+    my $summary = decode_header($response_ref, 'X-Meta-Description');
     return ($url, "$headline \x{2014} $summary");
   }
   # Everything else: the title
