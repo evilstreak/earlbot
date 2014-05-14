@@ -134,8 +134,7 @@ sub title {
   my $title = decode_header($response_ref, 'Title');
   # Some sites don't finish off header correctly, try a regex instead
   if (!$title) {
-    $$response_ref->decoded_content =~ /<title.*?>(.+?)<\/title/ims;
-	$title = $1;
+    $title = $1 if $$response_ref->decoded_content =~ /<title.*?>(.+?)<\/title/ims;
   }
   return unless $title;
 
