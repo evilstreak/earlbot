@@ -88,7 +88,9 @@ sub decode_header {
 
   my $header_value = $$response_ref->header($header_name);
   if ((my $content_charset = $$response_ref->content_charset) and $header_value) {
-	  $header_value = decode($content_charset, $header_value);
+    my $encoder = find_encoding($content_charset);
+    ref $encoder or $encoder = find_encoding("utf8");
+    $header_value = $encoder->decode($header_value);
   }
 
   return $header_value;
