@@ -263,7 +263,7 @@ sub said {
         $reply = substr($reply, 0, $maxLen) . '...';
       }
 
-      $self->reply( $args, "[ $reply ]$olde" );
+      $self->reply( $args, "[\xa0$reply\xa0]$olde" );
     }
   }
 }
