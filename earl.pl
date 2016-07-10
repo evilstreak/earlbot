@@ -62,6 +62,9 @@ sub ignore_nick {
   # ignore robonaut
   return 1 if $nick =~ /^robonaut$/;
 
+  # ignore Github bots
+  return 1 if $nick =~ /^GitHub\d+$/;
+
   $self->next::method($nick);
 }
 
