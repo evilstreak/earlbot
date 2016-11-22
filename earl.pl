@@ -51,6 +51,7 @@ if (defined $config{'useragent'}) {
 
 my $ua_limited = $ua->clone;
 $ua_limited->default_header("Range" => "bytes=0-$max_ret_size");
+$ua_limited->default_header("Referer" => "https://www.google.com/");
 
 
 sub ignore_nick {
