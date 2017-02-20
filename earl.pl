@@ -36,6 +36,10 @@ sub ignore_nick {
   $self->next::method($nick);
 }
 
+sub connected {
+  print("Connected\n");
+}
+
 sub run {
   my ($self, $no_run) = @_;
 
@@ -115,7 +119,16 @@ sub said {
         $reply = substr($reply, 0, $maxLen) . '...';
       }
 
-      $self->reply( $args, "[ $reply ]$olde" );
+      my $message = "[ $reply ]$olde";
+      if (!defined $config{'usenotice'} || !$config{'usenotice'}) {
+        $self->reply( $args, $message );
+      }
+      else{
+        $self->notice(
+          channel => $args->{channel},
+          body =>  $message
+        );
+      }
     }
   }
 }
