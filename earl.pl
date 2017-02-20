@@ -36,6 +36,10 @@ sub ignore_nick {
   $self->next::method($nick);
 }
 
+sub connected {
+  print("Connected\n");
+}
+
 sub run {
   my ($self, $no_run) = @_;
 
