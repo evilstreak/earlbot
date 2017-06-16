@@ -165,12 +165,6 @@ sub get_simple_response {
   if ( $mime_type =~ m'^image/' ) {
     return ($url, get_img_title(\$data));
   }
-  # BBC News article: headline and summary paragraph
-  elsif ( $url =~ m'^http://www\.bbc\.co\.uk/news/[-a-z]*-\d{7,}$' ) {
-    my $title   = title($response_ref);
-    my $summary = decode_header($response_ref, 'X-Meta-Description');
-    return ($url, "$title \x{2014} $summary");
-  }
   # Everything else: the title
   elsif ( my $title = title( $response_ref ) ) {
     return ($url, $title);
