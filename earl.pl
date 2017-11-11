@@ -190,14 +190,14 @@ sub get_response {
 sub get_tweet {
   my ( $id ) = @_;
 
-  my $url = "https://api.twitter.com/1.1/statuses/show/$id.json";
+  my $url = "https://api.twitter.com/1.1/statuses/show/$id.json?tweet_mode=extended";
 
   my $auth = 'Bearer ' . $config{ 'twittertoken' };
   my $response = $ua->get( $url, 'Authorization' => $auth );
   return unless $response->is_success;
 
   my $json = decode_json($response->decoded_content);
-  my $text = $json->{text};
+  my $text = $json->{full_text};
 
   if (my $entities = $json->{entities}) {
     my @text_array = split("", $text);
