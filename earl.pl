@@ -257,7 +257,7 @@ sub said {
 
       # IRC message length is up to 510. Max for nick, username, host, channel, etc is 150, which gives 360
       # I still think that's too long, so let's go for approximately a full tweet with username and no URLs
-      my $maxLen = 300 - length($olde);
+      my $maxLen = 295 - 4 - length($olde);
       if (length($reply) > $maxLen) {
         $reply = substr($reply, 0, $maxLen) . '...';
       }
