@@ -4,11 +4,9 @@ version '0.01';
 name 'earlbot';
 
 requires 'Bot::BasicBot';
-requires 'URI::Title';
 requires 'URI::Find::Simple';
-requires 'LWP::Simple';
+requires 'LWP::UserAgent';
 requires 'Crypt::SSLeay';
-requires 'HTML::HeadParser';
 requires 'POE::Kernel';
 requires 'POE::Session';
 requires 'Class::C3';
@@ -17,5 +15,8 @@ requires 'Date::Format';
 requires 'DBD::SQLite';
 requires 'Config::General';
 requires 'JSON';
+requires 'File::Type';
+requires 'Image::Size';
+requires 'HTML::Entities';
 
 WriteAll;
